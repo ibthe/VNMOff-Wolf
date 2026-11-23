@@ -39,6 +39,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -292,10 +293,9 @@ fun ThemeDialog(current: ThemeMode, onPick: (ThemeMode) -> Unit, onClose: () -> 
     )
 }
 
-/** Цвета названия: те же, что у иконки приложения (мята → бирюза → морская волна). */
-private val WolfMint = Color(0xFFE6FFF5)
-private val WolfTeal = Color(0xFF5FE3B4)
-private val WolfSea = Color(0xFF1FA6A0)
+/** Цвета названия: те же, что у иконки приложения (синий 0101FB → пурпурный 8E0398). */
+private val WolfBlue = Color(0xFF0101FB)
+private val WolfPurple = Color(0xFF8E0398)
 
 /**
  * Название приложения в две строки одинаковой ширины: «VNMOFF» крупно в градиенте иконки,
@@ -305,7 +305,11 @@ private val WolfSea = Color(0xFF1FA6A0)
 @Composable
 fun AppTitle() {
     val cs = MaterialTheme.colorScheme
-    val letterBrush = Brush.verticalGradient(listOf(WolfMint, WolfTeal, WolfSea))
+    // оба цвета палитры тёмные: на тёмной теме осветляем их, чтобы название читалось
+    val dark = cs.background.luminance() < 0.5f
+    val top = if (dark) lerp(WolfBlue, Color.White, 0.5f) else WolfBlue
+    val bottom = if (dark) lerp(WolfPurple, Color.White, 0.5f) else WolfPurple
+    val letterBrush = Brush.verticalGradient(listOf(top, bottom))
     Column(Modifier.width(IntrinsicSize.Max)) {
         Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             for (ch in "VNMOFF") {

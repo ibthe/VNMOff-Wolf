@@ -13,48 +13,37 @@
         android:scaleX="0.82"
         android:scaleY="0.82">
 
-        <!-- голова волка анфас, строго симметричная, без глаз -->
-        <path
-            android:pathData="M54,36 L45,31 L33,14 L28,40 L22,52 L31,54 L27,66 L38,66 L47,80 L54,87 L61,80 L70,66 L81,66 L77,54 L86,52 L80,40 L75,14 L63,31 Z"
-            android:strokeColor="#99E6FFF5"
-            android:strokeLineJoin="round"
-            android:strokeWidth="1.2">
+        <!-- голова волка анфас: строго симметричная, без глаз и носа; градиент 0101FB → 8E0398 -->
+        <path android:pathData="M54,40 L46,32 L35,13 L28,38 L21,50 L30,53 L25,64 L37,65 L46,79 L54,88 L62,79 L71,65 L83,64 L78,53 L87,50 L80,38 L73,13 L62,32 Z">
             <aapt:attr name="android:fillColor">
                 <gradient
                     android:startX="54"
-                    android:startY="14"
+                    android:startY="13"
                     android:endX="54"
-                    android:endY="87"
+                    android:endY="88"
                     android:type="linear">
-                    <item android:color="#FFE6FFF5" android:offset="0.0" />
-                    <item android:color="#FF5FE3B4" android:offset="0.55" />
-                    <item android:color="#FF1FA6A0" android:offset="1.0" />
+                    <item android:color="#FF0101FB" android:offset="0.0" />
+                    <item android:color="#FF8E0398" android:offset="1.0" />
                 </gradient>
             </aapt:attr>
         </path>
 
-        <!-- правая половина темнее: грань, как у огранённого камня -->
+        <!-- левая половина светлее: грань, как у огранённого камня -->
         <path
-            android:fillColor="#2E04100E"
-            android:pathData="M54,36 L63,31 L75,14 L80,40 L86,52 L77,54 L81,66 L70,66 L61,80 L54,87 Z" />
+            android:fillColor="#24FFFFFF"
+            android:pathData="M54,40 L46,32 L35,13 L28,38 L21,50 L30,53 L25,64 L37,65 L46,79 L54,88 Z" />
 
         <!-- внутренняя часть ушей -->
         <path
-            android:fillColor="#9904100E"
-            android:pathData="M34,22 L41,32 L32,38 Z M74,22 L67,32 L76,38 Z" />
+            android:fillColor="#E6F8F5FF"
+            android:pathData="M35,21 L42,32 L33,37 Z M73,21 L66,32 L75,37 Z" />
 
-        <!-- нос -->
+        <!-- звуковая волна: семь столбиков, самый высокий по центру, белые -->
         <path
-            android:fillColor="#F204100E"
-            android:pathData="M50,60 L58,60 L54,66 Z" />
-
-        <!-- звуковая волна: пять столбиков -->
-        <path
-            android:fillColor="#F204100E"
-            android:pathData="M45.1,72 h2.6 v3 h-2.6 Z
-                              M48.9,69.5 h2.6 v8 h-2.6 Z
-                              M52.7,67.5 h2.6 v12 h-2.6 Z
-                              M56.5,69.5 h2.6 v8 h-2.6 Z
-                              M60.3,72 h2.6 v3 h-2.6 Z" />
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M52.9,66 h2.2 v14 h-2.2 Z
+                              M49.5,68 h2.2 v10 h-2.2 Z M56.3,68 h2.2 v10 h-2.2 Z
+                              M46.1,69.5 h2.2 v7 h-2.2 Z M59.7,69.5 h2.2 v7 h-2.2 Z
+                              M42.7,71.25 h2.2 v3.5 h-2.2 Z M63.1,71.25 h2.2 v3.5 h-2.2 Z" />
     </group>
 </vector>

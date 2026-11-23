@@ -6,7 +6,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- тёмно-изумрудный градиент -->
+    <!-- светлый лавандовый фон: на нём тёмная палитра 0101FB / 8E0398 даёт сильный контраст -->
     <path android:pathData="M0,0 H108 V108 H0 Z">
         <aapt:attr name="android:fillColor">
             <gradient
@@ -15,14 +15,14 @@
                 android:endX="108"
                 android:endY="108"
                 android:type="linear">
-                <item android:color="#FF04100E" android:offset="0.0" />
-                <item android:color="#FF0B2A26" android:offset="0.6" />
-                <item android:color="#FF0F4A3F" android:offset="1.0" />
+                <item android:color="#FFF8F5FF" android:offset="0.0" />
+                <item android:color="#FFEBE2FF" android:offset="0.6" />
+                <item android:color="#FFDCCBFF" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- мягкое мятное свечение за головой волка -->
+    <!-- мягкое свечение за головой волка -->
     <path android:pathData="M0,0 H108 V108 H0 Z">
         <aapt:attr name="android:fillColor">
             <gradient
@@ -30,8 +30,8 @@
                 android:centerY="52"
                 android:gradientRadius="46"
                 android:type="radial">
-                <item android:color="#4D5FE3B4" android:offset="0.0" />
-                <item android:color="#261FA6A0" android:offset="0.55" />
+                <item android:color="#33FFFFFF" android:offset="0.0" />
+                <item android:color="#1F8E0398" android:offset="0.7" />
                 <item android:color="#00000000" android:offset="1.0" />
             </gradient>
         </aapt:attr>
