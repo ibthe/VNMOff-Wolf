@@ -13,48 +13,48 @@
         android:scaleX="0.82"
         android:scaleY="0.82">
 
-        <!-- голова волка анфас: острые уши, клочья на щеках -->
+        <!-- голова волка анфас, строго симметричная, без глаз -->
         <path
-            android:pathData="M54,38 L44,34 L30,18 L27,42 L20,54 L28,57 L24,68 L36,68 L46,82 L54,88 L62,82 L72,68 L84,68 L80,57 L88,54 L81,42 L78,18 L64,34 Z"
-            android:strokeColor="#99BFE9FF"
+            android:pathData="M54,36 L45,31 L33,14 L28,40 L22,52 L31,54 L27,66 L38,66 L47,80 L54,87 L61,80 L70,66 L81,66 L77,54 L86,52 L80,40 L75,14 L63,31 Z"
+            android:strokeColor="#99E6FFF5"
             android:strokeLineJoin="round"
             android:strokeWidth="1.2">
             <aapt:attr name="android:fillColor">
                 <gradient
                     android:startX="54"
-                    android:startY="18"
+                    android:startY="14"
                     android:endX="54"
-                    android:endY="88"
+                    android:endY="87"
                     android:type="linear">
-                    <item android:color="#FFEAF8FF" android:offset="0.0" />
-                    <item android:color="#FF8FD3FF" android:offset="0.5" />
-                    <item android:color="#FF7C5CFF" android:offset="1.0" />
+                    <item android:color="#FFE6FFF5" android:offset="0.0" />
+                    <item android:color="#FF5FE3B4" android:offset="0.55" />
+                    <item android:color="#FF1FA6A0" android:offset="1.0" />
                 </gradient>
             </aapt:attr>
         </path>
 
-        <!-- светлая грань на левой половине -->
+        <!-- правая половина темнее: грань, как у огранённого камня -->
         <path
-            android:fillColor="#26FFFFFF"
-            android:pathData="M54,38 L44,34 L30,18 L27,42 L20,54 L28,57 L24,68 L36,68 L46,82 L54,88 Z" />
+            android:fillColor="#2E04100E"
+            android:pathData="M54,36 L63,31 L75,14 L80,40 L86,52 L77,54 L81,66 L70,66 L61,80 L54,87 Z" />
 
         <!-- внутренняя часть ушей -->
         <path
-            android:fillColor="#99111A3F"
-            android:pathData="M31,25 L40,35 L30,40 Z M77,25 L68,35 L78,40 Z" />
+            android:fillColor="#9904100E"
+            android:pathData="M34,22 L41,32 L32,38 Z M74,22 L67,32 L76,38 Z" />
 
-        <!-- глаза: узкие, янтарные -->
+        <!-- нос -->
         <path
-            android:fillColor="#FFFFC857"
-            android:pathData="M36,49 L48,54 L45,58 L36,53 Z M72,49 L60,54 L63,58 L72,53 Z" />
+            android:fillColor="#F204100E"
+            android:pathData="M50,60 L58,60 L54,66 Z" />
 
-        <!-- вместо пасти звуковая волна: пять столбиков -->
+        <!-- звуковая волна: пять столбиков -->
         <path
-            android:fillColor="#F2070B1A"
-            android:pathData="M45.5,76 h3 v4 h-3 Z
-                              M49.5,73 h3 v10 h-3 Z
-                              M53.5,70 h3 v16 h-3 Z
-                              M57.5,73 h3 v10 h-3 Z
-                              M61.5,76 h3 v4 h-3 Z" />
+            android:fillColor="#F204100E"
+            android:pathData="M45.1,72 h2.6 v3 h-2.6 Z
+                              M48.9,69.5 h2.6 v8 h-2.6 Z
+                              M52.7,67.5 h2.6 v12 h-2.6 Z
+                              M56.5,69.5 h2.6 v8 h-2.6 Z
+                              M60.3,72 h2.6 v3 h-2.6 Z" />
     </group>
 </vector>

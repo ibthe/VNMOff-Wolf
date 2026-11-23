@@ -39,7 +39,7 @@ fun LockScreen(onUnlock: () -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Voice Notes Wolf", style = MaterialTheme.typography.headlineSmall)
+            Text("VNMOff Wolf", style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(8.dp))
             Text("Приложение заблокировано")
             Spacer(Modifier.height(24.dp))

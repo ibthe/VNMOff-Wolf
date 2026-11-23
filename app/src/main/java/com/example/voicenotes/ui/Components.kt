@@ -292,27 +292,38 @@ fun ThemeDialog(current: ThemeMode, onPick: (ThemeMode) -> Unit, onClose: () -> 
     )
 }
 
-/** Цвета названия: те же, что у иконки приложения (янтарь → оранжевый → красный). */
-private val WolfGold = Color(0xFFFFD27C)
-private val WolfOrange = Color(0xFFFF8A3D)
-private val WolfRed = Color(0xFFE5484D)
+/** Цвета названия: те же, что у иконки приложения (мята → бирюза → морская волна). */
+private val WolfMint = Color(0xFFE6FFF5)
+private val WolfTeal = Color(0xFF5FE3B4)
+private val WolfSea = Color(0xFF1FA6A0)
 
-/** Название приложения: заглавными, с разрядкой; «WOLF» в градиенте иконки. */
+/**
+ * Название приложения в две строки одинаковой ширины: «VNMOFF» крупно в градиенте иконки,
+ * «WOLF» мелко. Ширину задаёт верхняя строка, буквы нижней равномерно разносятся на эту же ширину,
+ * поэтому левый и правый края обеих строк совпадают.
+ */
 @Composable
 fun AppTitle() {
     val cs = MaterialTheme.colorScheme
-    Column {
-        Text(
-            "VOICE NOTES", fontSize = 11.sp, letterSpacing = 5.sp,
-            fontWeight = FontWeight.Medium, color = cs.onSurfaceVariant
-        )
-        Text(
-            "WOLF",
-            style = TextStyle(
-                brush = Brush.linearGradient(listOf(WolfGold, WolfOrange, WolfRed)),
-                fontSize = 28.sp, fontWeight = FontWeight.Black, letterSpacing = 9.sp
-            )
-        )
+    val letterBrush = Brush.verticalGradient(listOf(WolfMint, WolfTeal, WolfSea))
+    Column(Modifier.width(IntrinsicSize.Max)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            for (ch in "VNMOFF") {
+                Text(
+                    ch.toString(),
+                    style = TextStyle(brush = letterBrush, fontSize = 26.sp, fontWeight = FontWeight.Black)
+                )
+            }
+        }
+        Spacer(Modifier.height(1.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            for (ch in "WOLF") {
+                Text(
+                    ch.toString(),
+                    fontSize = 12.sp, fontWeight = FontWeight.Medium, color = cs.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
