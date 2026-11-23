@@ -293,13 +293,13 @@ fun ThemeDialog(current: ThemeMode, onPick: (ThemeMode) -> Unit, onClose: () -> 
     )
 }
 
-/** Цвета названия: те же, что у иконки приложения (синий 0101FB → пурпурный 8E0398). */
+/** Цвета названия: палитра иконки, но с упором на синий (синий 0101FB, пурпурный 8E0398 лишь у нижнего края букв). */
 private val WolfBlue = Color(0xFF0101FB)
 private val WolfPurple = Color(0xFF8E0398)
 
 /**
- * Название приложения в две строки одинаковой ширины: «VNMOFF» крупно в градиенте иконки,
- * «WOLF» мелко. Ширину задаёт верхняя строка, буквы нижней равномерно разносятся на эту же ширину,
+ * Название приложения в две строки одинаковой ширины: «WOLF» крупно в синем градиенте,
+ * «VNMOFF» мелко. Ширину задаёт верхняя строка, буквы нижней равномерно разносятся на эту же ширину,
  * поэтому левый и правый края обеих строк совпадают.
  */
 @Composable
@@ -307,24 +307,24 @@ fun AppTitle() {
     val cs = MaterialTheme.colorScheme
     // оба цвета палитры тёмные: на тёмной теме осветляем их, чтобы название читалось
     val dark = cs.background.luminance() < 0.5f
-    val top = if (dark) lerp(WolfBlue, Color.White, 0.5f) else WolfBlue
-    val bottom = if (dark) lerp(WolfPurple, Color.White, 0.5f) else WolfPurple
-    val letterBrush = Brush.verticalGradient(listOf(top, bottom))
+    val blue = if (dark) lerp(WolfBlue, Color.White, 0.5f) else WolfBlue
+    val purple = if (dark) lerp(WolfPurple, Color.White, 0.5f) else WolfPurple
+    val letterBrush = Brush.verticalGradient(0f to blue, 0.7f to blue, 1f to purple)
     Column(Modifier.width(IntrinsicSize.Max)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            for (ch in "VNMOFF") {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (ch in "WOLF") {
                 Text(
                     ch.toString(),
-                    style = TextStyle(brush = letterBrush, fontSize = 26.sp, fontWeight = FontWeight.Black)
+                    style = TextStyle(brush = letterBrush, fontSize = 30.sp, fontWeight = FontWeight.Black)
                 )
             }
         }
         Spacer(Modifier.height(1.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            for (ch in "WOLF") {
+            for (ch in "VNMOFF") {
                 Text(
                     ch.toString(),
-                    fontSize = 12.sp, fontWeight = FontWeight.Medium, color = cs.onSurfaceVariant
+                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = blue
                 )
             }
         }
