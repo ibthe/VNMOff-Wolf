@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.82"
+        android:scaleY="0.82">
+        <!-- силуэт волка; уши внутри, глаза и звуковая волна вырезаны -->
+        <path
+            android:fillColor="#000000"
+            android:fillType="evenOdd"
+            android:pathData="M54,38 L44,34 L30,18 L27,42 L20,54 L28,57 L24,68 L36,68 L46,82 L54,88 L62,82 L72,68 L84,68 L80,57 L88,54 L81,42 L78,18 L64,34 Z
+                              M31,25 L40,35 L30,40 Z M77,25 L68,35 L78,40 Z
+                              M36,49 L48,54 L45,58 L36,53 Z M72,49 L60,54 L63,58 L72,53 Z
+                              M45.5,76 h3 v4 h-3 Z
+                              M49.5,73 h3 v10 h-3 Z
+                              M53.5,70 h3 v16 h-3 Z
+                              M57.5,73 h3 v10 h-3 Z
+                              M61.5,76 h3 v4 h-3 Z" />
+    </group>
+</vector>

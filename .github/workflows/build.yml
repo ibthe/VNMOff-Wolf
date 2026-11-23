@@ -1,0 +1,117 @@
+name: Build VNMOff Wolf APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # публикация APK в Releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Download sherpa-onnx library (AAR)
+        run: |
+          set -e
+          mkdir -p app/libs
+          curl -fL --retry 3 -o app/libs/sherpa-onnx.aar \
+            https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar
+          ls -lh app/libs
+
+      # В sherpa-onnx лежит свой libonnxruntime.so, собранный так, что символ OrtGetApiBase из него
+      # недоступен (на телефоне: «cannot locate symbol OrtGetApiBase»). Java-части ONNX Runtime он
+      # не подходит. Поэтому для перевода берём ОФИЦИАЛЬНЫЙ onnxruntime-android и кладём его
+      # библиотеку под другим именем (libort_madlad.so), чтобы она жила рядом с библиотекой sherpa,
+      # не конфликтуя с ней. Родной libonnxruntime.so от sherpa остаётся нетронутым.
+      - name: Prepare ONNX Runtime for translation (separate copy, renamed)
+        env:
+          ORT_VERSION: "1.23.0"
+        run: |
+          set -e
+          sudo apt-get install -y --no-install-recommends patchelf > /dev/null
+          mkdir -p /tmp/ort /tmp/aar app/libs "$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a"
+          curl -fL --retry 3 -o /tmp/ort/ort.aar \
+            "https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/$ORT_VERSION/onnxruntime-android-$ORT_VERSION.aar"
+          cd /tmp/ort
+          unzip -q -o ort.aar classes.jar 'jni/arm64-v8a/*'
+          ls -l jni/arm64-v8a
+          cp classes.jar "$GITHUB_WORKSPACE/app/libs/ort-classes.jar"
+
+          # переименовываем официальную библиотеку и перенаправляем на неё JNI-обёртку
+          cp jni/arm64-v8a/libonnxruntime.so libort_madlad.so
+          patchelf --set-soname libort_madlad.so libort_madlad.so
+          cp jni/arm64-v8a/libonnxruntime4j_jni.so libonnxruntime4j_jni.so
+          patchelf --replace-needed libonnxruntime.so libort_madlad.so libonnxruntime4j_jni.so
+          echo "--- зависимости JNI-обёртки после правки:"
+          readelf -d libonnxruntime4j_jni.so | grep -E 'NEEDED|SONAME' || true
+          echo "--- экспорт OrtGetApiBase в libort_madlad.so:"
+          readelf -Ws --dyn-syms libort_madlad.so | grep OrtGetApiBase
+
+          J="$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a"
+          cp libort_madlad.so libonnxruntime4j_jni.so "$J/"
+
+          # библиотеку sherpa-onnx кладём как есть (она нужна распознаванию речи)
+          cd /tmp/aar
+          unzip -q -o "$GITHUB_WORKSPACE/app/libs/sherpa-onnx.aar" 'jni/arm64-v8a/*'
+          echo "--- libonnxruntime.so из sherpa-onnx (для информации):"
+          strings -n 6 jni/arm64-v8a/libonnxruntime.so | grep -E 'ORT Build Info|git-branch=' | head -3 || true
+          readelf -Ws --dyn-syms jni/arm64-v8a/libonnxruntime.so | grep -c OrtGetApiBase || echo "в библиотеке sherpa OrtGetApiBase нет"
+          cp jni/arm64-v8a/libonnxruntime.so "$J/libonnxruntime.so"
+          ls -l "$J"
+
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: 8.9
+
+      # Модели в APK не входят: приложение скачивает их после установки
+      # (релиз `models`, его создаёт workflow "Publish models").
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Verify native libraries in the APK
+        run: |
+          set -e
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -n 1)
+          mkdir -p /tmp/apk && cd /tmp/apk
+          unzip -q -o "$GITHUB_WORKSPACE/$APK" 'lib/arm64-v8a/*'
+          ls -l lib/arm64-v8a | grep -E 'onnx|ort_madlad|sherpa' || true
+          J="$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a"
+          for f in libort_madlad.so libonnxruntime4j_jni.so libonnxruntime.so; do
+            A=$(sha256sum "lib/arm64-v8a/$f" | cut -d' ' -f1)
+            B=$(sha256sum "$J/$f" | cut -d' ' -f1)
+            echo "$f  APK=$A  ожидалось=$B"
+            test "$A" = "$B" || { echo "::error::в APK попал не тот файл $f"; exit 1; }
+          done
+          readelf -d lib/arm64-v8a/libonnxruntime4j_jni.so | grep NEEDED
+          if readelf -d lib/arm64-v8a/libonnxruntime4j_jni.so | grep -q 'libonnxruntime.so'; then
+            echo "::error::JNI-обёртка всё ещё зависит от libonnxruntime.so"; exit 1
+          fi
+
+      - name: Publish APK to Release (tag "latest")
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -n 1)
+          cp "$APK" VNMOff-Wolf-debug.apk
+          SIZE=$(stat -c %s VNMOff-Wolf-debug.apk)
+          SHA=$(sha256sum VNMOff-Wolf-debug.apk | cut -d' ' -f1)
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest VNMOff-Wolf-debug.apk --target "$GITHUB_SHA" \
+            --title "VNMOff Wolf (MADLAD-400) - latest debug build" \
+            --notes "Автосборка из ${GITHUB_SHA::7}. Размер: $SIZE байт. SHA-256: $SHA" \
+            --prerelease

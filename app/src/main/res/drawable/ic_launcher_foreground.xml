@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- уменьшаем, чтобы уши не обрезались круглой маской -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.82"
+        android:scaleY="0.82">
+
+        <!-- голова волка анфас: острые уши, клочья на щеках -->
+        <path
+            android:pathData="M54,38 L44,34 L30,18 L27,42 L20,54 L28,57 L24,68 L36,68 L46,82 L54,88 L62,82 L72,68 L84,68 L80,57 L88,54 L81,42 L78,18 L64,34 Z"
+            android:strokeColor="#99BFE9FF"
+            android:strokeLineJoin="round"
+            android:strokeWidth="1.2">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="54"
+                    android:startY="18"
+                    android:endX="54"
+                    android:endY="88"
+                    android:type="linear">
+                    <item android:color="#FFEAF8FF" android:offset="0.0" />
+                    <item android:color="#FF8FD3FF" android:offset="0.5" />
+                    <item android:color="#FF7C5CFF" android:offset="1.0" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- светлая грань на левой половине -->
+        <path
+            android:fillColor="#26FFFFFF"
+            android:pathData="M54,38 L44,34 L30,18 L27,42 L20,54 L28,57 L24,68 L36,68 L46,82 L54,88 Z" />
+
+        <!-- внутренняя часть ушей -->
+        <path
+            android:fillColor="#99111A3F"
+            android:pathData="M31,25 L40,35 L30,40 Z M77,25 L68,35 L78,40 Z" />
+
+        <!-- глаза: узкие, янтарные -->
+        <path
+            android:fillColor="#FFFFC857"
+            android:pathData="M36,49 L48,54 L45,58 L36,53 Z M72,49 L60,54 L63,58 L72,53 Z" />
+
+        <!-- вместо пасти звуковая волна: пять столбиков -->
+        <path
+            android:fillColor="#F2070B1A"
+            android:pathData="M45.5,76 h3 v4 h-3 Z
+                              M49.5,73 h3 v10 h-3 Z
+                              M53.5,70 h3 v16 h-3 Z
+                              M57.5,73 h3 v10 h-3 Z
+                              M61.5,76 h3 v4 h-3 Z" />
+    </group>
+</vector>
