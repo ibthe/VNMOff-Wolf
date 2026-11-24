@@ -76,13 +76,13 @@ private val FeminineColors = lightColorScheme(
     error = Color(0xFFC4003C), onError = Color(0xFFFFFFFF)
 )
 
-// «Мужское»: графит и сталь, акцент — раскалённый оранжевый. Жёстко и собранно.
+// «Мужское»: графит и холодная сталь, акцент — стальной синий. Жёстко и собранно.
 private val MasculineColors = darkColorScheme(
-    primary = Color(0xFFFF7A1A), onPrimary = Color(0xFF1B0F02),
-    primaryContainer = Color(0xFF4A2A0E), onPrimaryContainer = Color(0xFFFFDCBF),
+    primary = Color(0xFF5B8CFF), onPrimary = Color(0xFF06122B),
+    primaryContainer = Color(0xFF1B2F5E), onPrimaryContainer = Color(0xFFD6E3FF),
     secondary = Color(0xFF9FB3C8), onSecondary = Color(0xFF12202E),
     secondaryContainer = Color(0xFF2C3A48), onSecondaryContainer = Color(0xFFD6E3F0),
-    tertiary = Color(0xFFC9A227), onTertiary = Color(0xFF2A2000),
+    tertiary = Color(0xFFB8C4D6), onTertiary = Color(0xFF1A2330),
     background = Color(0xFF0E1013), onBackground = Color(0xFFE6E8EB),
     surface = Color(0xFF0E1013), onSurface = Color(0xFFE6E8EB),
     surfaceVariant = Color(0xFF23282E), onSurfaceVariant = Color(0xFFB4BBC3),
@@ -97,7 +97,7 @@ enum class ThemeMode(val key: String, val label: String, val preview: List<Color
     LIGHT("light", "Светлое", listOf(Color(0xFFF5F4F9), Color(0xFFE9E7F3)), Color(0xFF5446C8), true),
     DARK("dark", "Тёмное", listOf(Color(0xFF13121A), Color(0xFF1B1928)), Color(0xFF5446C8), false),
     FEMININE("feminine", "Женское", listOf(Color(0xFFFFE3F0), Color(0xFFF2D0FF)), Color(0xFFD0357A), true),
-    MASCULINE("masculine", "Мужское", listOf(Color(0xFF0E1013), Color(0xFF1F252B)), Color(0xFFFF7A1A), false);
+    MASCULINE("masculine", "Мужское", listOf(Color(0xFF0E1013), Color(0xFF1F252B)), Color(0xFF5B8CFF), false);
 
     companion object {
         /** Сохранённый выбор; если его ещё нет (или тема убрана) — по системной теме телефона. */

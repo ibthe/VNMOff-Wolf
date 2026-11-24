@@ -5,8 +5,8 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- сплошной красный фон FE0001 -->
+    <!-- сплошной тёмно-красный фон -->
     <path
-        android:fillColor="#FFFE0001"
+        android:fillColor="#FFB30000"
         android:pathData="M0,0 H108 V108 H0 Z" />
 </vector>

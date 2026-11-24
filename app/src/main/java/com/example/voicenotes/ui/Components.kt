@@ -1,6 +1,11 @@
 package com.example.voicenotes.ui
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
@@ -38,8 +43,10 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -293,41 +300,50 @@ fun ThemeDialog(current: ThemeMode, onPick: (ThemeMode) -> Unit, onClose: () -> 
     )
 }
 
-/** Цвета названия: палитра иконки, но с упором на синий (синий 0101FB, пурпурный 8E0398 лишь у нижнего края букв). */
+/** Переливающиеся цвета слова WOLF: палитра иконки, с упором на синий (0101FB, 8E0398 и холодный голубой). */
 private val WolfBlue = Color(0xFF0101FB)
 private val WolfPurple = Color(0xFF8E0398)
+private val WolfSky = Color(0xFF2E7BFF)
 
 /**
- * Название приложения в две строки одинаковой ширины: «WOLF» крупно в синем градиенте,
- * «VNMOFF» мелко. Ширину задаёт верхняя строка, буквы нижней равномерно разносятся на эту же ширину,
- * поэтому левый и правый края обеих строк совпадают.
+ * Название приложения в две строки одинаковой ширины: сверху мелкое «VNMOFF» (белое на тёмных темах,
+ * чёрное на светлых), под ним крупное «WOLF» с переливом цвета на любой теме. Ширину задаёт «WOLF»,
+ * буквы «VNMOFF» равномерно разнесены на ту же ширину: начало и конец обеих строк стоят ровно друг над другом.
  */
 @Composable
 fun AppTitle() {
     val cs = MaterialTheme.colorScheme
-    // оба цвета палитры тёмные: на тёмной теме осветляем их, чтобы название читалось
     val dark = cs.background.luminance() < 0.5f
-    val blue = if (dark) lerp(WolfBlue, Color.White, 0.5f) else WolfBlue
-    val purple = if (dark) lerp(WolfPurple, Color.White, 0.5f) else WolfPurple
-    val letterBrush = Brush.verticalGradient(0f to blue, 0.7f to blue, 1f to purple)
+    val textColor = if (dark) Color.White else Color.Black
+    // на тёмных темах палитру осветляем, чтобы перелив читался на тёмном фоне
+    fun tone(c: Color) = if (dark) lerp(c, Color.White, 0.45f) else c
+    val colors = listOf(tone(WolfBlue), tone(WolfSky), tone(WolfPurple), tone(WolfSky), tone(WolfBlue))
+
+    val shift by rememberInfiniteTransition(label = "wolfShimmer").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(4000, easing = LinearEasing)),
+        label = "wolfShift"
+    )
+    val period = with(LocalDensity.current) { 140.dp.toPx() }
+    val brush = Brush.linearGradient(
+        colors = colors,
+        start = Offset(shift * period, 0f),
+        end = Offset(shift * period + period, 0f),
+        tileMode = TileMode.Repeated
+    )
+
     Column(Modifier.width(IntrinsicSize.Max)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            for (ch in "WOLF") {
-                Text(
-                    ch.toString(),
-                    style = TextStyle(brush = letterBrush, fontSize = 30.sp, fontWeight = FontWeight.Black)
-                )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            for (ch in "VNMOFF") {
+                Text(ch.toString(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = textColor)
             }
         }
         Spacer(Modifier.height(1.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            for (ch in "VNMOFF") {
-                Text(
-                    ch.toString(),
-                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = blue
-                )
-            }
-        }
+        Text(
+            "WOLF",
+            style = TextStyle(brush = brush, fontSize = 36.sp, fontWeight = FontWeight.Black)
+        )
     }
 }
 
