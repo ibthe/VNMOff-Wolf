@@ -14,7 +14,8 @@
   madlad-decoder.int8.onnx  madlad-decoder.int8.onnx.data
 
 Нужно: python 3.10+, ~35 ГБ свободного диска, ~32 ГБ ОЗУ (или большой своп).
-  pip install "optimum[onnxruntime]" onnx onnxruntime sentencepiece protobuf huggingface_hub torch transformers
+  pip install torch==2.4.1 "numpy<2" "optimum[onnxruntime]==1.23.3" transformers==4.46.3 onnx==1.16.2 onnxruntime==1.19.2 sentencepiece "protobuf>=4.25,<6" huggingface_hub
+  (на Python 3.11; с новыми версиями transformers/Python 3.14 экспорт optimum падает)
 
 Запуск:  python tools/export_madlad.py out/
 Если стандартного GitHub-раннера не хватает, запустите скрипт на своём компьютере/в Colab,
@@ -56,10 +57,11 @@ def tokenizer_files():
         for p in mp.pieces:
             f.write(f"{p.score}\t{clean(p.piece)}\t{kind.get(p.type, 'n')}\n")
 
+    # в spiece.model MADLAD нет токена «<pad>» (piece_to_id вернул бы id <unk>), поэтому id берём из config.json
     eos = sp.piece_to_id("</s>")
     unk = sp.unk_id()
-    pad = sp.piece_to_id("<pad>")
-    start = cfg.get("decoder_start_token_id", pad)
+    pad = cfg.get("pad_token_id", 0)
+    start = cfg.get("decoder_start_token_id", 0)
     print("config:", {k: cfg.get(k) for k in ("eos_token_id", "pad_token_id", "decoder_start_token_id", "vocab_size")})
     print("spm   :", {"eos": eos, "pad": pad, "unk": unk, "pieces": n})
     assert eos == cfg.get("eos_token_id"), "id </s> в spiece.model и config.json не совпадают"

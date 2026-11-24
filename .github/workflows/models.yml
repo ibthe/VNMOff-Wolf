@@ -69,11 +69,21 @@ jobs:
 
           ls -lh out
 
+      # Python 3.11 и закреплённые версии: optimum 1.x не работает с новыми transformers/Python 3.14
+      # (ошибка «NormalizedConfig.__init__() got multiple values for argument 'allow_new'»).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Export MADLAD-400 3B (ONNX int8)
         run: |
           set -e
-          pip install --quiet --break-system-packages "optimum[onnxruntime]" onnx onnxruntime sentencepiece protobuf huggingface_hub torch transformers
-          python3 tools/export_madlad.py out
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet "numpy<2" "optimum[onnxruntime]==1.23.3" "transformers==4.46.3" \
+            onnx==1.16.2 onnxruntime==1.19.2 sentencepiece "protobuf>=4.25,<6" huggingface_hub
+          python -m pip list 2>/dev/null | grep -i -E "^(torch|transformers|optimum|onnx|onnxruntime|numpy|protobuf) "
+          python tools/export_madlad.py out
           ls -lh out
 
       - name: Publish release "models"
