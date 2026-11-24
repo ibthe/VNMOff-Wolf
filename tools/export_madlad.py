@@ -14,7 +14,7 @@
   madlad-decoder.int8.onnx  madlad-decoder.int8.onnx.data
 
 Нужно: python 3.10+, ~35 ГБ свободного диска, ~32 ГБ ОЗУ (или большой своп).
-  pip install torch==2.4.1 "numpy<2" "optimum[onnxruntime]==1.23.3" transformers==4.46.3 onnx==1.16.2 onnxruntime==1.19.2 sentencepiece "protobuf>=4.25,<6" huggingface_hub
+  pip install torch==2.4.1 "numpy<2" "optimum[onnxruntime]==1.23.3" transformers==4.46.3 onnx==1.16.2 onnxruntime==1.19.2 sentencepiece huggingface_hub
   (на Python 3.11; с новыми версиями transformers/Python 3.14 экспорт optimum падает)
 
 Запуск:  python tools/export_madlad.py out/
@@ -36,26 +36,89 @@ raw = os.path.join(out, "_raw")
 os.makedirs(out, exist_ok=True)
 
 
+def read_spm_pieces(path):
+    """Читает токены из spiece.model напрямую (формат protobuf), без пакета protobuf:
+    его версия конфликтует с sentencepiece_model_pb2. Возвращает [(токен, оценка, тип)]."""
+    import struct
+
+    data = open(path, "rb").read()
+
+    def varint(b, i):
+        r = 0
+        shift = 0
+        while True:
+            c = b[i]
+            i += 1
+            r |= (c & 0x7F) << shift
+            shift += 7
+            if not c & 0x80:
+                return r, i
+
+    def skip(b, i, wt):
+        if wt == 0:
+            return varint(b, i)[1]
+        if wt == 1:
+            return i + 8
+        if wt == 5:
+            return i + 4
+        if wt == 2:
+            ln, i = varint(b, i)
+            return i + ln
+        raise ValueError(f"неизвестный тип поля protobuf: {wt}")
+
+    def parse_piece(b):
+        piece, score, typ = "", 0.0, 1
+        i = 0
+        while i < len(b):
+            key, i = varint(b, i)
+            field, wt = key >> 3, key & 7
+            if wt == 2 and field == 1:
+                ln, i = varint(b, i)
+                piece = b[i:i + ln].decode("utf-8")
+                i += ln
+            elif wt == 5 and field == 2:
+                score = struct.unpack("<f", b[i:i + 4])[0]
+                i += 4
+            elif wt == 0 and field == 3:
+                typ, i = varint(b, i)
+            else:
+                i = skip(b, i, wt)
+        return piece, score, typ
+
+    pieces = []
+    i = 0
+    while i < len(data):
+        key, i = varint(data, i)
+        field, wt = key >> 3, key & 7
+        if wt == 2 and field == 1:
+            ln, i = varint(data, i)
+            pieces.append(parse_piece(data[i:i + ln]))
+            i += ln
+        else:
+            i = skip(data, i, wt)
+    return pieces
+
+
 def tokenizer_files():
     from huggingface_hub import hf_hub_download
     from sentencepiece import SentencePieceProcessor
-    from sentencepiece import sentencepiece_model_pb2 as spm_pb
 
     spm_path = hf_hub_download(MODEL, "spiece.model")
     cfg = json.load(open(hf_hub_download(MODEL, "config.json"), encoding="utf-8"))
     sp = SentencePieceProcessor(model_file=spm_path)
-    mp = spm_pb.ModelProto()
-    mp.ParseFromString(open(spm_path, "rb").read())
+    pieces = read_spm_pieces(spm_path)
     kind = {1: "n", 2: "u", 3: "c", 4: "d", 5: "x", 6: "b"}  # NORMAL UNKNOWN CONTROL USER_DEFINED UNUSED BYTE
 
     def clean(x):
         return x.replace("\t", " ").replace("\n", " ").replace("\r", " ")
 
-    n = len(mp.pieces)
-    assert n == sp.get_piece_size()
+    n = len(pieces)
+    assert n == sp.get_piece_size(), f"разобрано {n} токенов, а в модели {sp.get_piece_size()}"
+    for i in (0, 1, 2, 3, n // 2, n - 1):
+        assert pieces[i][0] == sp.id_to_piece(i), f"разбор spiece.model не совпал на id {i}"
     with open(os.path.join(out, "madlad-vocab.tsv"), "w", encoding="utf-8", newline="\n") as f:
-        for p in mp.pieces:
-            f.write(f"{p.score}\t{clean(p.piece)}\t{kind.get(p.type, 'n')}\n")
+        for piece, score, typ in pieces:
+            f.write(f"{score}\t{clean(piece)}\t{kind.get(typ, 'n')}\n")
 
     # в spiece.model MADLAD нет токена «<pad>» (piece_to_id вернул бы id <unk>), поэтому id берём из config.json
     eos = sp.piece_to_id("</s>")
