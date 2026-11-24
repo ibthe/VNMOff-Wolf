@@ -1,38 +1,40 @@
 #!/usr/bin/env python3
 """
-Экспорт google/madlad400-3b-mt в ONNX для приложения VNMOff Wolf.
+Подготовка MADLAD-400 3B для приложения VNMOff Wolf БЕЗ тяжёлого экспорта.
+
+Готовые квантованные (int8) ONNX-модели скачиваются с Hugging Face
+(CXDuncan/madlad400-3b-mt-optimized-quantized-onnx: энкодер, декодер, декодер с кэшем; Apache-2.0),
+два декодера склеиваются в один (как ждёт приложение: вход use_cache_branch), веса сохраняются
+во внешние .data-файлы. Тяжёлого вычисления нет: хватает обычного GitHub-раннера (15 ГБ ОЗУ).
 
 Что делает:
-  1. Скачивает spiece.model и config.json, готовит vocab.tsv и meta.tsv для токенизатора приложения.
-  2. Экспортирует модель через optimum (энкодер + декодер с кэшем ключей/значений, merged).
-  3. Квантует веса в uint8 (MatMul и таблица эмбеддингов) и сохраняет каждую модель как
-     <имя>.onnx + <имя>.onnx.data (веса во внешнем файле: у протобуфа лимит 2 ГБ).
+  1. spiece.model и config.json из google/madlad400-3b-mt -> madlad-vocab.tsv и madlad-meta.tsv.
+  2. Скачивает encoder/decoder/decoder_with_past (около 5 ГБ).
+  3. Склеивает декодеры (optimum.onnx.merge_decoders), пересохраняет модели как <имя>.onnx + <имя>.onnx.data.
+  4. Проверяет имена входов/выходов и размеры файлов, пробует перевести фразу (результат только в лог).
 
-Результат в каталоге OUT (имена уже такие, как ждёт ModelStore в приложении):
+Результат в каталоге OUT (имена такие, как ждёт ModelStore в приложении):
   madlad-vocab.tsv  madlad-meta.tsv
   madlad-encoder.int8.onnx  madlad-encoder.int8.onnx.data
   madlad-decoder.int8.onnx  madlad-decoder.int8.onnx.data
 
-Нужно: python 3.10+, ~35 ГБ свободного диска, ~32 ГБ ОЗУ (или большой своп).
-  pip install torch==2.4.1 "numpy<2" "optimum[onnxruntime]==1.23.3" transformers==4.46.3 onnx==1.16.2 onnxruntime==1.19.2 sentencepiece huggingface_hub
-  (на Python 3.11; с новыми версиями transformers/Python 3.14 экспорт optimum падает)
+Нужно: python 3.11, ~15 ГБ диска, ~12 ГБ ОЗУ.
+  pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+  pip install "numpy<2" "optimum[onnxruntime]==1.23.3" transformers==4.46.3 onnx==1.16.2 onnxruntime==1.19.2 sentencepiece huggingface_hub
 
-Запуск:  python tools/export_madlad.py out/
-Если стандартного GitHub-раннера не хватает, запустите скрипт на своём компьютере/в Colab,
-а получившиеся файлы выложите в релиз `models` вручную.
+Запуск:  python tools/prepare_madlad.py out/
 """
 import json
 import os
 import shutil
-import subprocess
 import sys
 
-MODEL = "google/madlad400-3b-mt"
+MODEL = "google/madlad400-3b-mt"                                  # словарь и config
+ONNX_REPO = "CXDuncan/madlad400-3b-mt-optimized-quantized-onnx"   # готовые int8-модели
 LANGS = ["ru", "en", "ka"]
 GITHUB_LIMIT = 2 * 1024 ** 3 - 1  # один файл релиза GitHub < 2 ГиБ
 
 out = sys.argv[1] if len(sys.argv) > 1 else "out"
-raw = os.path.join(out, "_raw")
 os.makedirs(out, exist_ok=True)
 
 
@@ -138,42 +140,44 @@ def tokenizer_files():
     print("токенизатор готов")
 
 
-def export_onnx():
-    cmd = [
-        sys.executable, "-m", "optimum.exporters.onnx",
-        "--model", MODEL,
-        "--task", "text2text-generation-with-past",
-        raw,
-    ]
-    print(" ".join(cmd))
-    subprocess.run(cmd, check=True)
-    for name in ("encoder_model.onnx", "decoder_model_merged.onnx"):
-        assert os.path.exists(os.path.join(raw, name)), f"экспорт не создал {name}"
-
-
-def quantize(src, dst_name):
+def save_external(model, final):
     import onnx
-    from onnxruntime.quantization import QuantType, quantize_dynamic
 
-    tmp_dir = os.path.join(out, "_q")
-    os.makedirs(tmp_dir, exist_ok=True)
-    tmp = os.path.join(tmp_dir, dst_name)
-    quantize_dynamic(
-        src, tmp,
-        weight_type=QuantType.QUInt8,
-        op_types_to_quantize=["MatMul", "Gather"],
-        use_external_data_format=True,
-    )
-    # пересохраняем с предсказуемым именем файла весов: рядом с .onnx лежит <имя>.data
-    model = onnx.load(tmp)
-    final = os.path.join(out, "madlad-" + dst_name)
     for stale in (final, final + ".data"):
         if os.path.exists(stale):
             os.remove(stale)
     onnx.save_model(model, final, save_as_external_data=True, all_tensors_to_one_file=True,
                     location=os.path.basename(final) + ".data", size_threshold=1024)
-    shutil.rmtree(tmp_dir, ignore_errors=True)
-    return final
+
+
+def prepare_models():
+    import onnx
+    from huggingface_hub import hf_hub_download
+    from optimum.onnx import merge_decoders
+
+    enc_src = hf_hub_download(ONNX_REPO, "encoder_model_quantized.onnx")
+    dec_src = hf_hub_download(ONNX_REPO, "decoder_model_quantized.onnx")
+    past_src = hf_hub_download(ONNX_REPO, "decoder_with_past_model_quantized.onnx")
+    for f in (enc_src, dec_src, past_src):
+        print("скачано:", os.path.basename(f), f"{os.path.getsize(f) / 1e6:.0f} МБ")
+
+    enc = onnx.load(enc_src)
+    final_enc = os.path.join(out, "madlad-encoder.int8.onnx")
+    save_external(enc, final_enc)
+    del enc
+
+    print("склеиваю декодеры…")
+    try:
+        merged = merge_decoders(dec_src, past_src, strategy="join-outputs")
+    except Exception as e:  # noqa: BLE001
+        raise SystemExit(
+            f"Не удалось склеить декодеры: {e}\n"
+            "Тогда приложению нужна поддержка двух отдельных декодеров (сообщите об этой ошибке)."
+        )
+    final_dec = os.path.join(out, "madlad-decoder.int8.onnx")
+    save_external(merged, final_dec)
+    del merged
+    return final_enc, final_dec
 
 
 def check(final, is_decoder):
@@ -195,12 +199,49 @@ def check(final, is_decoder):
         assert size < GITHUB_LIMIT, f"{f} больше лимита GitHub (2 ГиБ)"
 
 
+def selftest(enc_path, dec_path):
+    """Жадный перевод одной фразы без кэша. Только для лога: сбой здесь не останавливает workflow."""
+    try:
+        import numpy as np
+        import onnxruntime as ort
+        from huggingface_hub import hf_hub_download
+        from sentencepiece import SentencePieceProcessor
+
+        sp = SentencePieceProcessor(model_file=hf_hub_download(MODEL, "spiece.model"))
+        cfg = json.load(open(hf_hub_download(MODEL, "config.json"), encoding="utf-8"))
+        eos, start = sp.piece_to_id("</s>"), cfg.get("decoder_start_token_id", 0)
+        src = np.array([sp.encode("<2ru> Hello, how are you?") + [eos]], dtype=np.int64)
+        mask = np.ones_like(src)
+
+        opts = ort.SessionOptions()
+        enc = ort.InferenceSession(enc_path, opts, providers=["CPUExecutionProvider"])
+        hidden = enc.run(None, {"input_ids": src, "attention_mask": mask})[0]
+        dec = ort.InferenceSession(dec_path, opts, providers=["CPUExecutionProvider"])
+        pasts = {}
+        for i in dec.get_inputs():
+            if i.name.startswith("past_key_values."):
+                heads, dim = i.shape[1], i.shape[3]
+                pasts[i.name] = np.zeros((1, heads, 0, dim), dtype=np.float32)
+        tokens = [start]
+        for _ in range(40):
+            feed = {"input_ids": np.array([tokens], dtype=np.int64), "encoder_hidden_states": hidden,
+                    "encoder_attention_mask": mask, "use_cache_branch": np.array([False])}
+            feed.update(pasts)
+            names = [o.name for o in dec.get_outputs()]
+            logits = dec.run(["logits"], feed)[0][0, -1]
+            nxt = int(np.argmax(logits))
+            if nxt == eos:
+                break
+            tokens.append(nxt)
+        print("ТЕСТ ПЕРЕВОДА <2ru> Hello, how are you? ->", sp.decode(tokens[1:]))
+    except Exception as e:  # noqa: BLE001
+        print("тест перевода не выполнен (не критично):", repr(e))
+
+
 if __name__ == "__main__":
     tokenizer_files()
-    export_onnx()
-    enc = quantize(os.path.join(raw, "encoder_model.onnx"), "encoder.int8.onnx")
+    enc, dec = prepare_models()
     check(enc, False)
-    dec = quantize(os.path.join(raw, "decoder_model_merged.onnx"), "decoder.int8.onnx")
     check(dec, True)
-    shutil.rmtree(raw, ignore_errors=True)
+    selftest(enc, dec)
     print("готово:", sorted(os.listdir(out)))

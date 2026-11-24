@@ -7,7 +7,7 @@ import java.text.Normalizer
 /**
  * Токенизатор MADLAD-400: SentencePiece Unigram (лучшая разбивка алгоритмом Витерби).
  *
- * Читает два файла, которые делает workflow «Publish models» (tools/export_madlad.py) из spiece.model:
+ * Читает два файла, которые делает workflow «Publish models» (tools/prepare_madlad.py) из spiece.model:
  *  - vocab.tsv: строка N = токен с id N, формат «оценка<TAB>токен<TAB>тип»,
  *    тип: n обычный, b байтовый (<0xNN>), c служебный, u неизвестный, d пользовательский (<2ru>…), x неиспользуемый;
  *  - meta.tsv: «имя<TAB>id»: eos, pad, unk, decoder_start и теги целевого языка (<2ru>, <2en>, <2ka>…).

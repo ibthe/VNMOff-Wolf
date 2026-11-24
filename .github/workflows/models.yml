@@ -1,7 +1,7 @@
 name: Publish models
 
-# Запускается вручную один раз (и при смене моделей): скачивает модели распознавания, экспортирует
-# перевод (MADLAD-400 3B, tools/export_madlad.py) и выкладывает всё файлами в релиз `models`. Из этого релиза приложение скачивает их
+# Запускается вручную один раз (и при смене моделей): скачивает модели распознавания, готовит
+# перевод (MADLAD-400 3B, tools/prepare_madlad.py) и выкладывает всё файлами в релиз `models`. Из этого релиза приложение скачивает их
 # само после установки, поэтому сам APK получается маленьким.
 on:
   workflow_dispatch:
@@ -11,17 +11,13 @@ on:
         default: "small"
         type: choice
         options: [tiny, base, small]
-      runner:
-        description: "Раннер для экспорта MADLAD (3B нужен ~32 ГБ ОЗУ; на ubuntu-latest может не хватить)"
-        default: "ubuntu-latest"
-        type: string
 
 permissions:
   contents: write
 
 jobs:
   publish:
-    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     env:
       MODEL: ${{ inputs.model || 'small' }}
     steps:
@@ -69,21 +65,21 @@ jobs:
 
           ls -lh out
 
-      # Python 3.11 и закреплённые версии: optimum 1.x не работает с новыми transformers/Python 3.14
-      # (ошибка «NormalizedConfig.__init__() got multiple values for argument 'allow_new'»).
+      # MADLAD-400 3B: готовые int8-ONNX с Hugging Face + склейка декодеров (тяжёлого экспорта нет).
+      # Python 3.11 и закреплённые версии: новые transformers/Python 3.14 несовместимы с optimum 1.x.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Export MADLAD-400 3B (ONNX int8)
+      - name: Prepare MADLAD-400 3B (ONNX int8)
         run: |
           set -e
           python -m pip install --quiet --upgrade pip
           python -m pip install --quiet torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
           python -m pip install --quiet "numpy<2" "optimum[onnxruntime]==1.23.3" "transformers==4.46.3" \
             onnx==1.16.2 onnxruntime==1.19.2 sentencepiece huggingface_hub
-          python -m pip list 2>/dev/null | grep -i -E "^(torch|transformers|optimum|onnx|onnxruntime|numpy|protobuf) "
-          python tools/export_madlad.py out
+          python -m pip list 2>/dev/null | grep -i -E "^(torch|transformers|optimum|onnx|onnxruntime|numpy) "
+          python tools/prepare_madlad.py out
           ls -lh out
 
       - name: Publish release "models"
