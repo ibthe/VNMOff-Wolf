@@ -168,7 +168,7 @@ def prepare_models():
 
     print("склеиваю декодеры…")
     try:
-        merged = merge_decoders(dec_src, past_src)
+        merged = merge_decoders(dec_src, past_src, strict=False)
     except Exception as e:  # noqa: BLE001
         raise SystemExit(
             f"Не удалось склеить декодеры: {e}\n"
