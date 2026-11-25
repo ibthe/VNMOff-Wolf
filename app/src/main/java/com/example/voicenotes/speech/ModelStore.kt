@@ -82,7 +82,7 @@ enum class ModelPack(val title: String, val sizeMb: Int, val items: List<ModelIt
  * Загрузка продолжается с того места, где оборвалась (файлы `.part`).
  */
 object ModelStore {
-    const val BASE_URL = "https://github.com/ibthe/VNWN/releases/download/models"
+    const val BASE_URL = "https://github.com/ibthe/VNMOff-Wolf/releases/download/models"
 
     private class NotFound(message: String) : Exception(message)
 

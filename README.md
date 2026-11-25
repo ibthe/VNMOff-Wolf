@@ -23,7 +23,7 @@
    Готовый файл: **Releases → latest → VNMOff-Wolf-debug.apk**.
 3. После установки: меню → «Модели распознавания». Для перевода нужен набор
    **«Перевод (MADLAD-400, 3B)»** (около 3,3 ГБ, скачивается один раз, докачка поддерживается).
-   Если репозиторий переименован, поправьте `BASE_URL` в `speech/ModelStore.kt`.
+   Адрес моделей задан в `BASE_URL` (`speech/ModelStore.kt`): `https://github.com/ibthe/VNMOff-Wolf/releases/download/models`. При смене имени репозитория поправьте его.
 
 ## Как работает перевод
 - `translate/MadladTokenizer.kt` — SentencePiece Unigram (Витерби) по словарю `vocab.tsv`; в начало входа
