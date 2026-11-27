@@ -52,9 +52,9 @@ enum class ModelPack(val title: String, val sizeMb: Int, val items: List<ModelIt
             ModelItem("madlad-vocab.tsv", "models/madlad/vocab.tsv"),
             ModelItem("madlad-meta.tsv", "models/madlad/meta.tsv"),
             ModelItem("madlad-encoder.int8.onnx", "models/madlad/encoder.int8.onnx"),
-            ModelItem("madlad-encoder.int8.onnx.data", "models/madlad/encoder.int8.onnx.data"),
+            ModelItem("madlad-encoder.int8.onnx.data", "models/madlad/madlad-encoder.int8.onnx.data"),
             ModelItem("madlad-decoder.int8.onnx", "models/madlad/decoder.int8.onnx"),
-            ModelItem("madlad-decoder.int8.onnx.data", "models/madlad/decoder.int8.onnx.data")
+            ModelItem("madlad-decoder.int8.onnx.data", "models/madlad/madlad-decoder.int8.onnx.data")
         )
     ),
     WAKE_RU(
@@ -86,7 +86,24 @@ object ModelStore {
 
     private class NotFound(message: String) : Exception(message)
 
-    fun installed(root: File, pack: ModelPack): Boolean = pack.items.all { ready(root, it) }
+    fun installed(root: File, pack: ModelPack): Boolean {
+        migrateMadladNames(root)
+        return pack.items.all { ready(root, it) }
+    }
+
+    /**
+     * Графы энкодера и декодера ссылаются на файлы весов по именам «madlad-encoder.int8.onnx.data» и
+     * «madlad-decoder.int8.onnx.data». Ранняя версия приложения сохраняла их без префикса «madlad-»,
+     * и ONNX Runtime не находил веса. Переименование на месте: заново качать ничего не нужно.
+     */
+    fun migrateMadladNames(root: File) {
+        val dir = File(root, "models/madlad")
+        for (part in listOf("encoder", "decoder")) {
+            val old = File(dir, "$part.int8.onnx.data")
+            val renamed = File(dir, "madlad-$part.int8.onnx.data")
+            if (old.isFile && !renamed.exists()) old.renameTo(renamed)
+        }
+    }
 
     private fun ready(root: File, item: ModelItem): Boolean =
         if (item.unzip) File(File(root, item.local), ".ready").exists()
@@ -102,6 +119,7 @@ object ModelStore {
 
     suspend fun download(root: File, pack: ModelPack, onProgress: (Float) -> Unit) =
         withContext(Dispatchers.IO) {
+            migrateMadladNames(root)
             val total = pack.sizeMb * 1_000_000L
             val need = total * 12 / 10
             if (root.usableSpace < need) {

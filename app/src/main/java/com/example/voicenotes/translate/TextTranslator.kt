@@ -1,5 +1,6 @@
 package com.example.voicenotes.translate
 
+import com.example.voicenotes.speech.ModelStore
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
@@ -113,11 +114,14 @@ class TextTranslator(modelsRoot: File) {
     private var heads = 16
     private var headDim = 128
 
-    fun isInstalled(): Boolean = listOf(
-        "encoder.int8.onnx", "encoder.int8.onnx.data", "decoder.int8.onnx", "decoder.int8.onnx.data",
-        "vocab.tsv", "meta.tsv"
-    )
-        .all { File(dir, it).let { f -> f.isFile && f.length() > 0 } }
+    fun isInstalled(): Boolean {
+        dir.parentFile?.parentFile?.let { ModelStore.migrateMadladNames(it) }
+        return listOf(
+            "encoder.int8.onnx", "madlad-encoder.int8.onnx.data",
+            "decoder.int8.onnx", "madlad-decoder.int8.onnx.data",
+            "vocab.tsv", "meta.tsv"
+        ).all { File(dir, it).let { f -> f.isFile && f.length() > 0 } }
+    }
 
     /**
      * Переводит текст построчно (абзацы и пустые строки сохраняются). Каждая строка очищается,
