@@ -200,11 +200,18 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
             val report = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
                 val sb = StringBuilder(header())
                 sb.append(com.example.voicenotes.translate.diagnoseOrt(getApplication(), null))
-                sb.appendLine("-- пробный перевод «Привет, как дела?» (ru → en):")
-                val t0 = System.currentTimeMillis()
+                sb.appendLine("-- пробные переводы (вход и выход показаны токенами «id:токен»):")
                 try {
-                    val out = translator.translate("Привет, как дела?", "ru", "en")
-                    sb.appendLine("   результат: «$out» за ${System.currentTimeMillis() - t0} мс")
+                    for ((text, from, to) in listOf(
+                        Triple("Привет, как дела?", "ru", "en"),
+                        Triple("Привет, как дела?", "ru", "ka"),
+                        Triple("Hello, how are you?", "en", "ru")
+                    )) {
+                        val t0 = System.currentTimeMillis()
+                        val out = translator.translate(text, from, to)
+                        sb.appendLine("   «$text» ($from → $to): «$out» за ${System.currentTimeMillis() - t0} мс")
+                        sb.appendLine(translator.lastTrace)
+                    }
                 } catch (t: Throwable) {
                     sb.appendLine("   ОШИБКА: ${t.describeChain()}")
                     var c: Throwable? = t

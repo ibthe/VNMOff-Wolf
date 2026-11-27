@@ -193,6 +193,27 @@ def check(final, is_decoder):
         assert any(i.startswith("past_key_values.") and ".encoder." in i for i in ins), "нет past_key_values.*.encoder.*"
     else:
         assert {"input_ids", "attention_mask"} <= set(ins), "в энкодере нет input_ids/attention_mask"
+    # все веса должны ссылаться ровно на тот файл .data, который лежит рядом (иначе ONNX Runtime
+    # на телефоне не найдёт веса: ошибка «No such file or directory … .onnx.data»)
+    expected = os.path.basename(final) + ".data"
+    locations = set()
+
+    def walk(graph):
+        for init in graph.initializer:
+            for kv in init.external_data:
+                if kv.key == "location":
+                    locations.add(kv.value)
+        for node in graph.node:
+            for attr in node.attribute:
+                if attr.type == onnx.AttributeProto.GRAPH:
+                    walk(attr.g)
+                elif attr.type == onnx.AttributeProto.GRAPHS:
+                    for g in attr.graphs:
+                        walk(g)
+
+    walk(m.graph)
+    assert locations == {expected}, f"веса ссылаются на {locations}, а рядом лежит {expected}"
+    print(f"  ссылки на веса: {sorted(locations)} (совпадают с файлом)")
     for f in (final, final + ".data"):
         size = os.path.getsize(f)
         print(f"  {os.path.basename(f)}: {size / 1e6:.0f} МБ")

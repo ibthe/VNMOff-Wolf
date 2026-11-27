@@ -20,6 +20,7 @@ class MadladTokenizer(dir: File) {
     private val scores: FloatArray
     private val types: ByteArray
     private val meta = HashMap<String, Int>()
+    private val allPieces = ArrayList<String>(260_000)   // токен по id, любого типа (для отладочного вывода)
     private val bytePiece = IntArray(256) { -1 }
     private var hasBytes = false
     private var maxPieceLen = 1
@@ -48,6 +49,7 @@ class MadladTokenizer(dir: File) {
                 val type = p.getOrNull(2)?.firstOrNull() ?: 'n'
                 sc.add(score)
                 ty.add(type.code.toByte())
+                allPieces.add(piece)
                 when (type) {
                     'n' -> if (piece.isNotEmpty()) {
                         pieceToId.putIfAbsent(piece, id)
@@ -84,6 +86,10 @@ class MadladTokenizer(dir: File) {
             it != eosId && types[it] != 'n'.code.toByte() && types[it] != 'b'.code.toByte()
         }.toIntArray()
     }
+
+    /** Для диагностики: «id:токен id:токен …». */
+    fun describe(ids: List<Int>): String =
+        ids.joinToString(" ") { id -> "$id:" + (allPieces.getOrNull(id) ?: "?") }
 
     /** id тега целевого языка: «ru» → <2ru>. */
     private fun targetTagId(lang: String): Int = meta["<2$lang>"] ?: error("В словаре нет языка $lang")

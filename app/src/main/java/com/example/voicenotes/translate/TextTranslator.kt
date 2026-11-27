@@ -102,6 +102,9 @@ class TextTranslator(modelsRoot: File) {
     @Volatile var onStage: ((String) -> Unit)? = null
     private fun stage(s: String) { onStage?.invoke(s) }
 
+    /** Последний перевод фразы: токены входа и выхода (id:токен). Только для «Диагностики перевода». */
+    @Volatile var lastTrace: String = ""
+
     /** Модель уже в памяти (первый перевод после запуска дольше из-за загрузки ~3 ГБ). */
     fun isLoaded(): Boolean = encoder != null && decoder != null && tokenizer != null
 
@@ -459,7 +462,9 @@ class TextTranslator(modelsRoot: File) {
                 }
                 finished.sortByDescending { it.norm }
             }
-            return tok.decode(finished.firstOrNull()?.tokens ?: emptyList())
+            val best = finished.firstOrNull()?.tokens ?: emptyList()
+            lastTrace = "      вход:  " + tok.describe(srcIds.toList()) + "\n      выход: " + tok.describe(best)
+            return tok.decode(best)
         } finally {
             pastTensors.forEach { runCatching { it.close() } }
             if (lastResult !== firstResult) runCatching { lastResult?.close() }
