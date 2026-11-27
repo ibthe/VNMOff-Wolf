@@ -97,6 +97,13 @@ class TextTranslator(modelsRoot: File) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var unloadJob: Job? = null
 
+    /** Текущий этап для интерфейса («Загружаю энкодер…», «Перевожу… фраза 3»); пустая строка — этап закончился. */
+    @Volatile var onStage: ((String) -> Unit)? = null
+    private fun stage(s: String) { onStage?.invoke(s) }
+
+    /** Модель уже в памяти (первый перевод после запуска дольше из-за загрузки ~3 ГБ). */
+    fun isLoaded(): Boolean = encoder != null && decoder != null && tokenizer != null
+
     private var env: OrtEnvironment? = null
     private var encoder: OrtSession? = null
     private var decoder: OrtSession? = null
@@ -127,6 +134,7 @@ class TextTranslator(modelsRoot: File) {
                 unloadJob?.cancel()
                 try {
                     ensureLoaded()
+                    var phrase = 0
                     val lines = ArrayList<String>()
                     for (line in text.split("\n")) {
                         ensureActive()
@@ -137,6 +145,7 @@ class TextTranslator(modelsRoot: File) {
                         val out = StringBuilder()
                         for (chunk in TextPreprocessor.split(cleaned)) {
                             ensureActive()
+                            stage("Перевожу… фраза ${++phrase}")
                             var piece = translateSentence(chunk.text, dst)
                             if (chunk.continues) {
                                 // фраза из середины предложения: вместо точки в конце ставим запятую/«;»
@@ -154,6 +163,7 @@ class TextTranslator(modelsRoot: File) {
                     android.util.Log.e("MADLAD", "translate failed", t)
                     throw t
                 } finally {
+                    stage("")
                     scheduleUnload()
                 }
             }
@@ -175,12 +185,17 @@ class TextTranslator(modelsRoot: File) {
         val threads = Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
         fun options() = OrtSession.SessionOptions().apply {
             setIntraOpNumThreads(threads)
-            setOptimizationLevel(OrtSession.SessionOptions.OptLevel.BASIC_OPT)
+            // модели уже оптимизированы при подготовке: повторная оптимизация 3-гигабайтных графов
+            // на телефоне только долго грузит и съедает память
+            setOptimizationLevel(OrtSession.SessionOptions.OptLevel.NO_OPT)
             setMemoryPatternOptimization(false)
         }
         env = e
+        stage("Читаю словарь…")
         tokenizer = MadladTokenizer(dir)
+        stage("Загружаю энкодер (1,3 ГБ)… первый раз до пары минут")
         encoder = e.createSession(File(dir, "encoder.int8.onnx").absolutePath, options())
+        stage("Загружаю декодер (1,9 ГБ)… первый раз до пары минут")
         val dec = e.createSession(File(dir, "decoder.int8.onnx").absolutePath, options())
         decoder = dec
         // число голов и размер головы берём из формы входа past_key_values.*

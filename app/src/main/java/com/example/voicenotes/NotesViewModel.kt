@@ -146,6 +146,12 @@ class NotesViewModel(app: Application) : AndroidViewModel(app) {
         private set
     private val translator = TextTranslator(modelsRoot)
 
+    /** Этап перевода для интерфейса: загрузка модели, номер фразы. Пусто — перевод не идёт. */
+    var translateStage by mutableStateOf("")
+        private set
+    init { translator.onStage = { s -> translateStage = s } }
+    fun translatorLoaded(): Boolean = translator.isLoaded()
+
     // ---- Диагностика перевода: полный отчёт, который можно выделить, скопировать и отправить
     var diagReport by mutableStateOf<String?>(null)
         private set

@@ -634,8 +634,18 @@ private fun NoteEditor(vm: NotesViewModel, id: Long, onClose: () -> Unit) {
         }
         scope.launch {
             translatingText = true
+            if (!vm.translatorLoaded()) {
+                Toast.makeText(context, "Перевод запущен. Первый раз модель грузится в память: до пары минут, ход виден на кнопке", Toast.LENGTH_LONG).show()
+            }
             try {
                 val res = vm.translateText(src, sourceLang, target)
+                if (res.isBlank()) {
+                    Toast.makeText(context, "Модель вернула пустой перевод: меню → «Диагностика перевода»", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                if (res.trim() == src.trim()) {
+                    Toast.makeText(context, "Перевод совпал с исходным: текст уже на выбранном языке или язык определён неверно", Toast.LENGTH_LONG).show()
+                }
                 val old = tfv.text
                 val before = Triple(old, spans, bold)
                 val nt = if (append) old.substring(0, e) + "\n\n" + res + old.substring(e)
@@ -844,7 +854,7 @@ private fun NoteEditor(vm: NotesViewModel, id: Long, onClose: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(Gap.S)
             ) {
                 Text(
-                    if (translatingText) "Перевожу…" else "Перевести выделенное:",
+                    if (translatingText) vm.translateStage.ifEmpty { "Перевожу…" } else "Перевести выделенное:",
                     color = cs.onSurfaceVariant, style = MaterialTheme.typography.labelLarge
                 )
                 listOf("ru" to "Русский", "en" to "English", "ka" to "ქართული").forEach { (code, label) ->
@@ -926,7 +936,7 @@ private fun NoteEditor(vm: NotesViewModel, id: Long, onClose: () -> Unit) {
                                     horizontalArrangement = Arrangement.spacedBy(Gap.S)
                                 ) {
                                     PillButton(
-                                        if (translatingText) "Перевожу…" else "Заменить переводом",
+                                        if (translatingText) vm.translateStage.ifEmpty { "Перевожу…" } else "Заменить переводом",
                                         primary = true, enabled = !translatingText && tfv.text.isNotBlank()
                                     ) { translateNow(append = false) }
                                     PillButton(
@@ -1356,7 +1366,7 @@ private fun VoicePanel(vm: NotesViewModel, onDictate: () -> Unit, onOk: () -> Un
                     vm.recording -> "Стоп"
                     !vm.isInstalled(vm.currentPack) -> "Сначала скачайте модель"
                     vm.modelLoading -> "Загружаю модель…"
-                    vm.translating -> "Перевожу…"
+                    vm.translating -> vm.translateStage.ifEmpty { "Перевожу…" }
                     vm.busy -> "Распознаю…"
                     else -> "Диктовать"
                 },

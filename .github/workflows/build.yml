@@ -43,23 +43,8 @@ jobs:
           set -e
           sudo apt-get install -y --no-install-recommends patchelf > /dev/null
           mkdir -p /tmp/ort /tmp/aar app/libs "$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a"
-          # Maven Central иногда отвечает 429 (лимит запросов с IP раннеров GitHub),
-          # поэтому: несколько зеркал, длинные паузы между попытками, повторы по кругу.
-          PATH_ORT="com/microsoft/onnxruntime/onnxruntime-android/$ORT_VERSION/onnxruntime-android-$ORT_VERSION.aar"
-          ok=0
-          for attempt in 1 2 3 4; do
-            for base in \
-              "https://repo.maven.apache.org/maven2" \
-              "https://maven-central.storage-download.googleapis.com/maven2" \
-              "https://repo1.maven.org/maven2"; do
-              echo "Попытка $attempt: $base"
-              if curl -fL --retry 2 --retry-delay 5 -o /tmp/ort/ort.aar "$base/$PATH_ORT"; then
-                ok=1; break 2
-              fi
-            done
-            sleep $((attempt * 20))
-          done
-          [ "$ok" = 1 ] || { echo "Не удалось скачать onnxruntime-android"; exit 1; }
+          curl -fL --retry 3 -o /tmp/ort/ort.aar \
+            "https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/$ORT_VERSION/onnxruntime-android-$ORT_VERSION.aar"
           cd /tmp/ort
           unzip -q -o ort.aar classes.jar 'jni/arm64-v8a/*'
           ls -l jni/arm64-v8a
